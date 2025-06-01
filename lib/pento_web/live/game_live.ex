@@ -181,24 +181,6 @@ defmodule PentoWeb.GameLive do
             </div>
           </div>
         <% end %>
-        
-        <!-- Debug: Test remove buttons -->
-        <%= if not Enum.empty?(@game_state.placed_pieces) do %>
-          <div class="mt-4 p-4 bg-gray-100 rounded">
-            <h3 class="font-bold mb-2">Debug: 已放置的方块</h3>
-            <div class="flex flex-wrap gap-2">
-              <%= for piece <- @game_state.placed_pieces do %>
-                <button
-                  phx-click="remove_piece"
-                  phx-value-id={piece.id}
-                  class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  移除 <%= piece.id %>
-                </button>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
 
         <%= if @game_won do %>
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -404,8 +386,6 @@ defmodule PentoWeb.GameLive do
   defp handle_specific_event("remove_piece", %{"id" => piece_id}, socket) do
     require Logger
     Logger.info("Remove piece event triggered for: #{piece_id}")
-    IO.puts("CONSOLE: Remove piece event triggered for: #{piece_id}")
-    IO.inspect(socket.assigns.game_state.placed_pieces, label: "Current placed pieces")
     
     # Check if dragging to prevent accidental removes while placing
     if socket.assigns.dragging do
@@ -415,8 +395,6 @@ defmodule PentoWeb.GameLive do
       case Game.remove_piece(socket.assigns.game_state, piece_id) do
         {:ok, new_state} ->
           Logger.info("Successfully removed piece: #{piece_id}")
-          IO.puts("CONSOLE: Successfully removed piece: #{piece_id}")
-          IO.inspect(new_state.placed_pieces, label: "New placed pieces after removal")
           
           socket = socket
           |> assign(:game_state, new_state)
@@ -427,7 +405,6 @@ defmodule PentoWeb.GameLive do
           
         {:error, reason} ->
           Logger.error("Failed to remove piece: #{piece_id}, reason: #{inspect(reason)}")
-          IO.puts("CONSOLE: Failed to remove piece: #{piece_id}, reason: #{inspect(reason)}")
           {:noreply, put_error(socket, "无法移除方块")}
       end
     end
@@ -528,8 +505,8 @@ defmodule PentoWeb.GameLive do
 
   defp save_game_state(game_state) do
     # In a real app, would save to database or session
-    # For now, just log
-    IO.inspect(Game.save_game(game_state), label: "Saving game state")
+    # For now, just save without logging
+    Game.save_game(game_state)
   end
 
   defp pixel_to_grid({pixel_x, pixel_y}, cell_size) do
