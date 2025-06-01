@@ -1,0 +1,104 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+/* Game-specific styles */
+.game-board {
+  @apply border-2 border-gray-300 rounded-lg;
+}
+
+.grid-cell {
+  @apply transition-colors duration-150;
+}
+
+.placed-piece {
+  @apply transition-opacity duration-200 cursor-pointer;
+  position: relative;
+  z-index: 10;
+}
+
+.placed-piece:hover {
+  @apply opacity-80;
+}
+
+/* Ensure click events work on SVG elements */
+.placed-piece rect {
+  pointer-events: all !important;
+}
+
+/* Debug: visual feedback on click */
+.placed-piece:active {
+  @apply opacity-50;
+  transform: scale(0.95);
+}
+
+/* Prevent Phoenix LiveView loading animations on placed pieces */
+.placed-piece.phx-click-loading {
+  opacity: 0.8 !important;
+  animation: none !important;
+}
+
+/* Ensure SVG click areas work properly */
+.piece-click-area {
+  cursor: pointer;
+  pointer-events: all !important;
+}
+
+.ghost-valid {
+  @apply animate-pulse;
+}
+
+.ghost-invalid {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.valid-position {
+  @apply animate-pulse;
+}
+
+.cursor-indicator {
+  @apply animate-ping;
+}
+
+/* Tool palette styles */
+.palette-piece {
+  @apply transform transition-all duration-200;
+}
+
+.palette-piece:hover:not(.piece-unavailable) {
+  @apply transform scale-105 shadow-md;
+}
+
+.piece-selected {
+  @apply transform scale-105 shadow-lg;
+}
+
+/* Win animation */
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s ease-out;
+}

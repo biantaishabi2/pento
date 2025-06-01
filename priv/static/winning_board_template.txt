@@ -1,0 +1,27 @@
+# Winning Board Template for 10x6 Pentomino Game
+# Each letter represents a pentomino piece
+# Board dimensions: 10 columns x 6 rows
+
+Row 0: I I I I I L L L L F
+Row 1: N N N N P L P P F F
+Row 2: N P P P P T T T F Y
+Row 3: U U V V V T X T Y Y
+Row 4: U U U V V X X X Y Y
+Row 5: W W Z Z Z X W W W Z
+
+# Piece placements:
+# I: (0,0) horizontal - covers (0,0), (0,1), (0,2), (0,3), (0,4)
+# L: (0,5) shape - covers (0,5), (0,6), (0,7), (0,8), (1,5)
+# F: (0,9) shape - covers (0,9), (1,8), (1,9), (2,8), (2,9)
+# N: (1,0) shape - covers (1,0), (1,1), (1,2), (1,3), (2,0)
+# P: (1,4) shape - covers (1,4), (1,6), (1,7), (2,1), (2,2), (2,3), (2,4)
+# T: (2,5) shape - covers (2,5), (2,6), (2,7), (3,6), (3,8)
+# Y: (2,9) shape - covers (2,9), (3,8), (3,9), (4,8), (4,9)
+# U: (3,0) shape - covers (3,0), (3,1), (4,0), (4,1), (4,2)
+# V: (3,2) shape - covers (3,2), (3,3), (3,4), (4,3), (4,4)
+# X: (3,5) shape - covers (3,5), (3,7), (4,5), (4,6), (4,7), (5,5)
+# W: (5,0) shape - covers (5,0), (5,1), (5,6), (5,7), (5,8)
+# Z: (5,2) shape - covers (5,2), (5,3), (5,4), (5,9), (4,9)
+
+# Total cells covered: 60 (12 pieces x 5 cells each)
+# Board size: 10x6 = 60 cells
