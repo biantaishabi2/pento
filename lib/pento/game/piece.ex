@@ -62,20 +62,11 @@ defmodule Pento.Game.Piece do
   Rotates a piece 90 degrees clockwise or counter-clockwise
   """
   def rotate_piece(%__MODULE__{shape: shape} = piece, :clockwise) do
-    {cx, cy} = find_center(shape)
-    
+    # 直接旋转每个格子，然后归一化
     rotated_shape = shape
     |> Enum.map(fn {x, y} ->
-      # Translate to origin
-      tx = x - cx
-      ty = y - cy
-      
-      # Rotate 90 degrees clockwise: (x,y) -> (y,-x)
-      rx = ty
-      ry = -tx
-      
-      # Translate back and ensure integer coordinates
-      {round(rx + cx), round(ry + cy)}
+      # 90度顺时针旋转: (x,y) -> (y,-x)
+      {y, -x}
     end)
     |> normalize_shape()
     
@@ -152,15 +143,6 @@ defmodule Pento.Game.Piece do
 
   # Private functions
 
-  defp find_center(shape) do
-    xs = Enum.map(shape, &elem(&1, 0))
-    ys = Enum.map(shape, &elem(&1, 1))
-    
-    cx = (Enum.min(xs) + Enum.max(xs)) / 2
-    cy = (Enum.min(ys) + Enum.max(ys)) / 2
-    
-    {cx, cy}
-  end
 
   defp bfs_connected([], visited, _shape_set), do: visited
   
