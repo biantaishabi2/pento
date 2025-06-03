@@ -79,6 +79,52 @@ defmodule Pento.Game.Board do
     calculate_coverage(placed_pieces, board_size) == 100.0
   end
 
+  @doc """
+  Finds all valid placements when clicking on a specific position.
+  Returns a list of possible placement positions (top-left corners) where the piece
+  can be placed such that one of its cells occupies the clicked position.
+  """
+  def find_valid_placements_for_click(click_pos, piece_shape, placed_pieces, board_size) do
+    occupied = get_occupied_cells(placed_pieces)
+    
+    # For each cell in the piece, calculate where the top-left would be
+    # if that cell was at the click position
+    piece_shape
+    |> Enum.map(fn {dx, dy} ->
+      # Calculate the top-left corner position
+      {elem(click_pos, 0) - dx, elem(click_pos, 1) - dy}
+    end)
+    |> Enum.uniq()
+    |> Enum.filter(fn placement_pos ->
+      # Check if this placement is valid
+      absolute_positions = Piece.get_absolute_positions(piece_shape, placement_pos)
+      
+      within_bounds?(absolute_positions, board_size) and
+        not has_collision_with_set?(absolute_positions, occupied)
+    end)
+  end
+
+  @doc """
+  Gets all clickable positions for a piece shape.
+  This includes all cells that would be occupied by the piece in any valid placement.
+  """
+  def get_clickable_positions(piece_shape, placed_pieces, board_size) do
+    # Get all valid placement positions
+    valid_placements = valid_positions(piece_shape, placed_pieces, board_size)
+    
+    # For each valid placement, get all cells the piece would occupy
+    valid_placements
+    |> Enum.flat_map(fn placement_pos ->
+      Piece.get_absolute_positions(piece_shape, placement_pos)
+    end)
+    |> Enum.uniq()
+    |> Enum.filter(fn {x, y} ->
+      # Only return positions within board bounds
+      x >= 0 and x < elem(board_size, 0) and
+      y >= 0 and y < elem(board_size, 1)
+    end)
+  end
+
   # Private functions
 
   defp has_collision_with_set?(positions, occupied_set) do

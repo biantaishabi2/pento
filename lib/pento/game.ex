@@ -116,6 +116,52 @@ defmodule Pento.Game do
   end
 
   @doc """
+  Gets all clickable positions for the current piece.
+  This includes all cells that can trigger a valid placement.
+  """
+  def clickable_positions(%{current_piece: nil}), do: []
+  
+  def clickable_positions(game) do
+    Board.get_clickable_positions(
+      game.current_piece.shape,
+      game.placed_pieces,
+      game.board_size
+    )
+  end
+
+  @doc """
+  Smart place piece - finds valid placements when clicking on a position
+  and places the piece at the most suitable location.
+  """
+  def smart_place_piece(%{current_piece: nil}, _click_pos) do
+    {:error, :no_piece_selected}
+  end
+  
+  def smart_place_piece(game, click_pos) do
+    possible_placements = Board.find_valid_placements_for_click(
+      click_pos,
+      game.current_piece.shape,
+      game.placed_pieces,
+      game.board_size
+    )
+    
+    case possible_placements do
+      [] -> 
+        {:error, :no_valid_placement}
+      
+      placements ->
+        # Choose the placement closest to the click position
+        best_placement = Enum.min_by(placements, fn {px, py} ->
+          dx = elem(click_pos, 0) - px
+          dy = elem(click_pos, 1) - py
+          dx * dx + dy * dy  # squared distance
+        end)
+        
+        State.place_piece(game, best_placement)
+    end
+  end
+
+  @doc """
   Saves the game state for persistence
   """
   defdelegate save_game(game), to: State, as: :to_map

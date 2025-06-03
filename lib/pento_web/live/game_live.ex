@@ -244,7 +244,7 @@ defmodule PentoWeb.GameLive do
         socket = socket
         |> assign(:game_state, new_state)
         |> assign(:dragging, true)
-        |> assign(:valid_positions, Game.valid_positions(new_state))
+        |> assign(:valid_positions, Game.clickable_positions(new_state))
         |> clear_error()
         
         {:noreply, socket}
@@ -279,10 +279,10 @@ defmodule PentoWeb.GameLive do
     Logger.info("drop_at_cell event: x=#{x}, y=#{y}, dragging=#{socket.assigns.dragging}")
     
     if socket.assigns.dragging do
-      position = {String.to_integer(x), String.to_integer(y)}
-      Logger.info("Attempting to place piece at position: #{inspect(position)}")
+      click_position = {String.to_integer(x), String.to_integer(y)}
+      Logger.info("Attempting to place piece at click position: #{inspect(click_position)}")
       
-      case Game.place_piece(socket.assigns.game_state, position) do
+      case Game.smart_place_piece(socket.assigns.game_state, click_position) do
         {:ok, new_state} ->
           socket = socket
           |> assign(:game_state, new_state)
@@ -296,6 +296,9 @@ defmodule PentoWeb.GameLive do
           
         {:error, :no_piece_selected} ->
           {:noreply, put_error(socket, "请先选择一个方块")}
+          
+        {:error, :no_valid_placement} ->
+          {:noreply, put_error(socket, "无法在此位置放置方块")}
           
         {:error, :out_of_bounds} ->
           {:noreply, put_error(socket, "方块超出棋盘边界")}
@@ -314,10 +317,10 @@ defmodule PentoWeb.GameLive do
     
     if socket.assigns.dragging do
       {x, y} = extract_svg_coordinates(params)
-      position = pixel_to_grid({x, y}, socket.assigns.cell_size)
-      Logger.info("Calculated position from pixels: #{inspect({x, y})} -> grid: #{inspect(position)}")
+      click_position = pixel_to_grid({x, y}, socket.assigns.cell_size)
+      Logger.info("Calculated click position from pixels: #{inspect({x, y})} -> grid: #{inspect(click_position)}")
       
-      case Game.place_piece(socket.assigns.game_state, position) do
+      case Game.smart_place_piece(socket.assigns.game_state, click_position) do
         {:ok, new_state} ->
           socket = socket
           |> assign(:game_state, new_state)
@@ -331,6 +334,9 @@ defmodule PentoWeb.GameLive do
           
         {:error, :no_piece_selected} ->
           {:noreply, put_error(socket, "请先选择一个方块")}
+          
+        {:error, :no_valid_placement} ->
+          {:noreply, put_error(socket, "无法在此位置放置方块")}
           
         {:error, :out_of_bounds} ->
           {:noreply, put_error(socket, "方块超出棋盘边界")}
@@ -351,7 +357,7 @@ defmodule PentoWeb.GameLive do
         {:ok, new_state} ->
           socket = socket
           |> assign(:game_state, new_state)
-          |> assign(:valid_positions, Game.valid_positions(new_state))
+          |> assign(:valid_positions, Game.clickable_positions(new_state))
           
           {:noreply, socket}
           
@@ -371,7 +377,7 @@ defmodule PentoWeb.GameLive do
         {:ok, new_state} ->
           socket = socket
           |> assign(:game_state, new_state)
-          |> assign(:valid_positions, Game.valid_positions(new_state))
+          |> assign(:valid_positions, Game.clickable_positions(new_state))
           
           {:noreply, socket}
           
@@ -565,7 +571,7 @@ defmodule PentoWeb.GameLive do
       {:ok, new_state} ->
         socket
         |> assign(:game_state, new_state)
-        |> assign(:valid_positions, Game.valid_positions(new_state))
+        |> assign(:valid_positions, Game.clickable_positions(new_state))
       {:error, _} ->
         socket
     end
@@ -576,7 +582,7 @@ defmodule PentoWeb.GameLive do
       {:ok, new_state} ->
         socket
         |> assign(:game_state, new_state)
-        |> assign(:valid_positions, Game.valid_positions(new_state))
+        |> assign(:valid_positions, Game.clickable_positions(new_state))
       {:error, _} ->
         socket
     end
@@ -587,7 +593,7 @@ defmodule PentoWeb.GameLive do
       {:ok, new_state} ->
         socket
         |> assign(:game_state, new_state)
-        |> assign(:valid_positions, Game.valid_positions(new_state))
+        |> assign(:valid_positions, Game.clickable_positions(new_state))
       {:error, _} ->
         socket
     end
@@ -598,7 +604,7 @@ defmodule PentoWeb.GameLive do
       {:ok, new_state} ->
         socket
         |> assign(:game_state, new_state)
-        |> assign(:valid_positions, Game.valid_positions(new_state))
+        |> assign(:valid_positions, Game.clickable_positions(new_state))
       {:error, _} ->
         socket
     end
