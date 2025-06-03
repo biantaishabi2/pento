@@ -9,7 +9,7 @@ defmodule Pento.Application do
   def start(_type, _args) do
     children = [
       PentoWeb.Telemetry,
-      # Pento.Repo,  # 注释掉 Repo，禁用数据库连接
+      Pento.Repo,
       {DNSCluster, query: Application.get_env(:pento, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Pento.PubSub},
       # Start the Finch HTTP client for sending emails

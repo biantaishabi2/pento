@@ -2,18 +2,23 @@ defmodule PentoWeb.GameLive do
   use PentoWeb, :live_view
   
   alias Pento.Game
+  alias Pento.Games
   alias PentoWeb.Components.{GameBoard, ToolPalette, HelpModal}
+  
+  @save_debounce_ms 500
 
   @impl true
   def mount(_params, session, socket) do
-    game_state = load_or_create_game(session)
+    session_id = get_or_create_session_id(session)
+    {game_state, game_session} = load_or_create_game_with_persistence(session_id)
     
     if connected?(socket) do
-      :timer.send_interval(30_000, self(), :auto_save)
+      :timer.send_interval(30_000, self(), :periodic_save)
     end
     
     socket = socket
     |> assign(:page_title, "Pentomino Puzzle")
+    |> assign(:session_id, session_id)
     |> assign(:game_state, game_state)
     |> assign(:dragging, false)
     |> assign(:cursor, {0, 0})
@@ -21,9 +26,10 @@ defmodule PentoWeb.GameLive do
     |> assign(:valid_positions, [])
     |> assign(:game_won, Game.is_complete?(game_state))
     |> assign(:error_message, nil)
-    |> assign(:last_saved, nil)
+    |> assign(:last_saved, game_session.updated_at)
     |> assign(:cell_size, get_cell_size())
     |> assign(:show_help, false)
+    |> assign(:save_timer, nil)
     
     {:ok, socket}
   end
@@ -182,6 +188,26 @@ defmodule PentoWeb.GameLive do
           </div>
         <% end %>
 
+        <!-- Debug removal buttons for placed pieces -->
+        <%= if not Enum.empty?(@game_state.placed_pieces) do %>
+          <div class="mt-4 max-w-md mx-auto">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <h3 class="text-sm font-medium text-gray-700 mb-2">调试: 移除方块</h3>
+              <div class="flex flex-wrap gap-2">
+                <%= for piece <- @game_state.placed_pieces do %>
+                  <button
+                    phx-click="remove_piece"
+                    phx-value-id={piece.id}
+                    class="px-2 py-1 bg-red-100 text-red-700 rounded border border-red-200 hover:bg-red-200 text-xs"
+                  >
+                    移除 <%= piece.id %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
         <%= if @game_won do %>
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl p-8 max-w-md animate-bounce-in">
@@ -291,6 +317,7 @@ defmodule PentoWeb.GameLive do
           |> assign(:valid_positions, [])
           |> check_win_condition()
           |> clear_error()
+          |> schedule_save()
           
           {:noreply, socket}
           
@@ -329,6 +356,7 @@ defmodule PentoWeb.GameLive do
           |> assign(:valid_positions, [])
           |> check_win_condition()
           |> clear_error()
+          |> schedule_save()
           
           {:noreply, socket}
           
@@ -406,6 +434,7 @@ defmodule PentoWeb.GameLive do
           |> assign(:game_state, new_state)
           |> assign(:game_won, false)
           |> clear_error()
+          |> schedule_save()
           
           {:noreply, socket}
           
@@ -423,6 +452,7 @@ defmodule PentoWeb.GameLive do
         |> assign(:game_state, new_state)
         |> assign(:game_won, Game.is_complete?(new_state))
         |> clear_error()
+        |> schedule_save()
         
         {:noreply, socket}
         
@@ -476,9 +506,13 @@ defmodule PentoWeb.GameLive do
   end
 
   @impl true
-  def handle_info(:auto_save, socket) do
-    save_game_state(socket.assigns.game_state)
-    socket = assign(socket, :last_saved, DateTime.utc_now())
+  def handle_info(:periodic_save, socket) do
+    socket = save_to_database(socket)
+    {:noreply, socket}
+  end
+  
+  def handle_info(:save_game, socket) do
+    socket = save_to_database(socket)
     {:noreply, socket}
   end
 
@@ -498,22 +532,7 @@ defmodule PentoWeb.GameLive do
 
   # Private functions
 
-  defp load_or_create_game(session) do
-    case session["game_state"] do
-      nil -> Game.new_game()
-      saved_state ->
-        case Game.load_game(saved_state) do
-          {:ok, state} -> state
-          _ -> Game.new_game()
-        end
-    end
-  end
-
-  defp save_game_state(game_state) do
-    # In a real app, would save to database or session
-    # For now, just save without logging
-    Game.save_game(game_state)
-  end
+  # Legacy functions removed - now using persistence
 
   defp pixel_to_grid({pixel_x, pixel_y}, cell_size) do
     # Handle negative coordinates correctly
@@ -654,5 +673,199 @@ defmodule PentoWeb.GameLive do
   defp get_cell_size do
     # 默认使用更大的单元格尺寸，适合移动设备
     40
+  end
+
+  # Piece definitions for data conversion
+  @piece_shapes %{
+    "F" => [{0, 0}, {1, 0}, {1, 1}, {1, 2}, {2, 1}],
+    "I" => [{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}],
+    "L" => [{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 3}],
+    "N" => [{0, 0}, {0, 1}, {1, 1}, {1, 2}, {1, 3}],
+    "P" => [{0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 2}],
+    "T" => [{0, 0}, {1, 0}, {2, 0}, {1, 1}, {1, 2}],
+    "U" => [{0, 0}, {0, 1}, {1, 1}, {2, 1}, {2, 0}],
+    "V" => [{0, 0}, {0, 1}, {0, 2}, {1, 2}, {2, 2}],
+    "W" => [{0, 0}, {0, 1}, {1, 1}, {1, 2}, {2, 2}],
+    "X" => [{1, 0}, {0, 1}, {1, 1}, {2, 1}, {1, 2}],
+    "Y" => [{0, 0}, {0, 1}, {1, 1}, {0, 2}, {0, 3}],
+    "Z" => [{0, 0}, {1, 0}, {1, 1}, {1, 2}, {2, 2}]
+  }
+
+  @piece_colors %{
+    "F" => "#ef4444",
+    "I" => "#3b82f6", 
+    "L" => "#f97316",
+    "N" => "#a855f7",
+    "P" => "#ec4899",
+    "T" => "#14b8a6",
+    "U" => "#f59e0b",
+    "V" => "#10b981",
+    "W" => "#8b5cf6",
+    "X" => "#06b6d4",
+    "Y" => "#6366f1",
+    "Z" => "#84cc16"
+  }
+
+  defp get_piece_shape(id), do: Map.get(@piece_shapes, id, [])
+  defp get_piece_color(id), do: Map.get(@piece_colors, id, "#000000")
+
+  # Persistence helpers
+
+  defp get_or_create_session_id(session) do
+    case session["session_id"] do
+      nil -> Ecto.UUID.generate()
+      id -> id
+    end
+  end
+
+  defp load_or_create_game_with_persistence(session_id) do
+    case Games.get_or_create_session(session_id) do
+      {:ok, game_session} ->
+        game_state = convert_from_db_format(game_session.game_state)
+        {game_state, game_session}
+      
+      {:error, _} ->
+        # Fallback to new game if database fails
+        {Game.new_game(), %{updated_at: DateTime.utc_now()}}
+    end
+  end
+
+  defp convert_from_db_format(db_state) when is_map(db_state) do
+    # Check if this looks like valid game state
+    if has_valid_game_structure?(db_state) do
+      # Get available pieces as IDs
+      available_ids = db_state["available_pieces"] || db_state[:available_pieces] || []
+      
+      # Convert to full piece structures
+      available_pieces = Enum.map(available_ids, fn id ->
+        case Pento.Game.Piece.get_piece(id) do
+          nil -> %Pento.Game.Piece{id: id, shape: get_piece_shape(id), color: get_piece_color(id)}
+          piece -> piece
+        end
+      end)
+      
+      # Create proper Game.State struct
+      %Pento.Game.State{
+        board_size: to_tuple_if_map(db_state["board_size"] || db_state[:board_size], {10, 6}),
+        placed_pieces: convert_placed_pieces(db_state["placed_pieces"] || db_state[:placed_pieces] || []),
+        available_pieces: available_pieces,
+        current_piece: convert_current_piece(db_state["current_piece"] || db_state[:current_piece]),
+        history: db_state["history"] || db_state[:history] || []
+      }
+    else
+      # Corrupted or invalid data, return fresh game state
+      Game.new_game()
+    end
+  end
+  
+  defp has_valid_game_structure?(db_state) do
+    Map.has_key?(db_state, "board_size") or Map.has_key?(db_state, :board_size) or
+    Map.has_key?(db_state, "available_pieces") or Map.has_key?(db_state, :available_pieces) or
+    Map.has_key?(db_state, "placed_pieces") or Map.has_key?(db_state, :placed_pieces)
+  end
+
+  defp to_tuple_if_map(%{"cols" => cols, "rows" => rows}, _default), do: {cols, rows}
+  defp to_tuple_if_map(%{cols: cols, rows: rows}, _default), do: {cols, rows}
+  defp to_tuple_if_map(_, default), do: default
+
+  defp convert_placed_pieces(pieces) when is_list(pieces) do
+    Enum.map(pieces, &convert_piece/1)
+  end
+  defp convert_placed_pieces(_), do: []
+
+  defp convert_piece(piece) when is_map(piece) do
+    %{
+      id: piece["id"] || piece[:id],
+      shape: convert_coordinates(piece["shape"] || piece[:shape]),
+      position: convert_position(piece["position"] || piece[:position]),
+      color: piece["color"] || piece[:color]
+    }
+  end
+
+  defp convert_current_piece(nil), do: nil
+  defp convert_current_piece(piece) when is_map(piece) do
+    %Pento.Game.Piece{
+      id: piece["id"] || piece[:id],
+      shape: convert_coordinates(piece["shape"] || piece[:shape]),
+      color: piece["color"] || piece[:color]
+    }
+  end
+
+  defp convert_coordinates(coords) when is_list(coords) do
+    Enum.map(coords, fn
+      [x, y] -> {x, y}
+      {x, y} -> {x, y}
+      %{"x" => x, "y" => y} -> {x, y}
+      %{x: x, y: y} -> {x, y}
+    end)
+  end
+  defp convert_coordinates(_), do: []
+
+  defp convert_position(%{"x" => x, "y" => y}), do: {x, y}
+  defp convert_position(%{x: x, y: y}), do: {x, y}
+  defp convert_position({x, y}), do: {x, y}
+  defp convert_position(_), do: {0, 0}
+
+  defp schedule_save(socket) do
+    # Cancel previous timer if exists
+    if socket.assigns[:save_timer] do
+      Process.cancel_timer(socket.assigns.save_timer)
+    end
+    
+    # Schedule new save
+    timer = Process.send_after(self(), :save_game, @save_debounce_ms)
+    assign(socket, :save_timer, timer)
+  end
+
+  defp save_to_database(socket) do
+    try do
+      # Convert game state to database format
+      db_state = convert_to_db_format(socket.assigns.game_state)
+      
+      case Games.save_game_state(socket.assigns.session_id, db_state) do
+        {:ok, updated_session} ->
+          socket
+          |> assign(:last_saved, updated_session.updated_at)
+          |> assign(:save_timer, nil)
+        
+        {:error, _reason} ->
+          # Log error but don't crash the game
+          socket
+      end
+    rescue
+      _ ->
+        # Database connection failed, continue without saving
+        socket
+    end
+  end
+  
+  defp convert_to_db_format(game_state) do
+    %{
+      board_size: %{cols: elem(game_state.board_size, 0), rows: elem(game_state.board_size, 1)},
+      placed_pieces: Enum.map(game_state.placed_pieces, &convert_placed_piece_to_db/1),
+      available_pieces: Enum.map(game_state.available_pieces, & &1.id),
+      current_piece: if(game_state.current_piece, do: convert_regular_piece_to_db(game_state.current_piece), else: nil),
+      # Don't save history to database to avoid JSON encoding issues - history is for UI undo only
+      history: []
+    }
+  end
+  
+  # For placed pieces (they have position)
+  defp convert_placed_piece_to_db(piece) do
+    %{
+      id: piece.id,
+      shape: Enum.map(piece.shape, fn {x, y} -> [x, y] end),
+      position: %{x: elem(piece.position, 0), y: elem(piece.position, 1)},
+      color: piece.color
+    }
+  end
+  
+  # For regular pieces (Piece structs, no position)
+  defp convert_regular_piece_to_db(piece) do
+    %{
+      id: piece.id,
+      shape: Enum.map(piece.shape, fn {x, y} -> [x, y] end),
+      color: piece.color
+    }
   end
 end

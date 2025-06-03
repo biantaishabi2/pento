@@ -23,7 +23,7 @@ defmodule PentoWeb.ClickDetectionTest do
       assert length(clickable) > length(valid)
     end
     
-    test "smart placement finds best position when clicking", %{conn: conn} do
+    test "smart placement finds best position when clicking", %{conn: _conn} do
       # Create a game with I piece already placed
       game = Game.new_game()
       {:ok, game} = Game.select_piece(game, "I")
@@ -80,7 +80,7 @@ defmodule PentoWeb.ClickDetectionTest do
   end
   
   describe "edge cases" do
-    test "clicking occupied cell triggers placement if valid", %{conn: conn} do
+    test "clicking occupied cell triggers placement if valid", %{conn: _conn} do
       # Create specific scenario
       game = Game.new_game()
       
