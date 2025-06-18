@@ -1,0 +1,25 @@
+[Unit]
+Description=Pento Phoenix Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=wangbo
+Group=wangbo
+WorkingDirectory=/home/wangbo/document/pento
+Environment=MIX_ENV=prod
+Environment=PORT=4012
+Environment=PHX_SERVER=true
+Environment=PHX_HOST=pento.biantaishabi.org
+Environment=SECRET_KEY_BASE=+HfVF+SiypCpeVtyeRnJEwfwndM2Auf/zw+KcdPX9tfraJuU22v03MKiA2y+a3Ma
+Environment=DATABASE_URL=ecto://postgres:postgres@localhost/pento_prod
+ExecStart=/usr/bin/mix phx.server
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pento
+
+[Install]
+WantedBy=multi-user.target
