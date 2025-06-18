@@ -144,7 +144,7 @@ defmodule PentoWeb.Integration.GameFlowTest do
       refute html =~ "data-id=\"X\""
       refute html =~ "data-id=\"Y\""
       refute html =~ "data-id=\"Z\""
-      assert html =~ "游戏已重置"
+      assert html =~ "游戏已重新开始"
       
       # Can start playing again
       select_piece(view, "F")

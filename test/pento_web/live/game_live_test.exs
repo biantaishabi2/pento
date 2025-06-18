@@ -169,6 +169,97 @@ defmodule PentoWeb.GameLiveTest do
     end
   end
 
+  describe "reset functionality" do
+    test "reset button clears all pieces and saves to database", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/")
+      
+      # 1. Place some pieces
+      view
+      |> element("[phx-click=\"select_piece\"][phx-value-id=\"T\"]")
+      |> render_click()
+      
+      view
+      |> element("[phx-click=\"drop_at_cell\"][phx-value-x=\"0\"][phx-value-y=\"0\"]")
+      |> render_click()
+      
+      view
+      |> element("[phx-click=\"select_piece\"][phx-value-id=\"L\"]")
+      |> render_click()
+      
+      view
+      |> element("[phx-click=\"drop_at_cell\"][phx-value-x=\"5\"][phx-value-y=\"0\"]")
+      |> render_click()
+      
+      # Verify pieces are placed
+      assert has_element?(view, ".placed-piece[data-id=\"T\"]")
+      assert has_element?(view, ".placed-piece[data-id=\"L\"]")
+      
+      # 2. Click reset button
+      view
+      |> element("button", "重新开始")
+      |> render_click()
+      
+      # 3. Verify pieces are cleared
+      refute has_element?(view, ".placed-piece[data-id=\"T\"]")
+      refute has_element?(view, ".placed-piece[data-id=\"L\"]")
+      assert render(view) =~ "游戏已重新开始"
+      
+      # 4. Wait for auto-save (should happen within 500ms)
+      Process.sleep(600)
+      
+      # 5. Force save to database
+      send(view.pid, :save_game)
+      Process.sleep(100)
+      
+      # 6. Simulate page reload
+      {:ok, new_view, _html} = live(conn, "/")
+      
+      # 7. Verify the reset state persisted - no pieces should be placed
+      refute has_element?(new_view, ".placed-piece[data-id=\"T\"]")
+      refute has_element?(new_view, ".placed-piece[data-id=\"L\"]")
+      
+      # All pieces should be available
+      assert has_element?(new_view, "[phx-click=\"select_piece\"][phx-value-id=\"T\"]:not(.piece-used)")
+      assert has_element?(new_view, "[phx-click=\"select_piece\"][phx-value-id=\"L\"]:not(.piece-used)")
+    end
+
+    test "reset immediately triggers save to prevent reload issues", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/")
+      
+      # Use the same approach as other tests - select T piece which is more reliable
+      view
+      |> element("[phx-click=\"select_piece\"][phx-value-id=\"T\"]")
+      |> render_click()
+      
+      view
+      |> element("[phx-click=\"drop_at_cell\"][phx-value-x=\"0\"][phx-value-y=\"0\"]")
+      |> render_click()
+      
+      # Verify piece is placed using the same selector as other tests
+      assert has_element?(view, ".placed-piece[data-id=\"T\"]")
+      
+      # Reset
+      view
+      |> element("button", "重新开始")
+      |> render_click()
+      
+      # Verify reset happened
+      refute has_element?(view, ".placed-piece[data-id=\"T\"]")
+      
+      # Wait for auto-save to complete (should happen within 500ms)
+      Process.sleep(600)
+      
+      # Verify by reloading the page - the reset state should persist
+      {:ok, new_view, _html} = live(conn, "/")
+      
+      # No pieces should be placed after reload
+      refute has_element?(new_view, ".placed-piece")
+      
+      # All pieces should be available
+      assert has_element?(new_view, "[phx-click=\"select_piece\"][phx-value-id=\"T\"]:not(.piece-used)")
+    end
+  end
+
   describe "piece removal" do
     test "can remove placed piece by clicking on it", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/")

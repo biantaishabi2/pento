@@ -393,7 +393,7 @@ defmodule PentoWeb.GameLiveAdvancedTest do
       
       # Reset should work
       view
-      |> element("button", "重置")
+      |> element("button", "重新开始")
       |> render_click()
       
       assert render(view) =~ "0%"

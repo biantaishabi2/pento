@@ -399,7 +399,7 @@ defmodule PentoWeb.GameLiveInteractionTest do
       
       # Reset
       view
-      |> element("button", "重置")
+      |> element("button", "重新开始")
       |> render_click()
       
       # Board should be empty
@@ -408,7 +408,7 @@ defmodule PentoWeb.GameLiveInteractionTest do
       # Use a more specific regex that matches "placed-piece" but not "placed-pieces-layer"
       refute html =~ ~r/<g\s+class="placed-piece(?:\s|")/
       assert html =~ "0%"
-      assert html =~ "游戏已重置"
+      assert html =~ "游戏已重新开始"
     end
 
     test "undo button disabled when no history", %{conn: conn} do
@@ -426,11 +426,11 @@ defmodule PentoWeb.GameLiveInteractionTest do
       {:ok, view, _html} = live(conn, "/")
       
       html = render(view)
-      # Check for disabled button containing 重置
+      # Check for disabled button containing 重新开始
       assert html =~ "disabled"
-      assert html =~ "重置"
+      assert html =~ "重新开始"
       # More specific check
-      assert html =~ ~r/<button[^>]+disabled[^>]*>.*重置.*<\/button>/s
+      assert html =~ ~r/<button[^>]+disabled[^>]*>.*重新开始.*<\/button>/s
     end
   end
 

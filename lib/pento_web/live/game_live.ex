@@ -169,9 +169,10 @@ defmodule PentoWeb.GameLive do
               phx-click="reset"
               disabled={Enum.empty?(@game_state.placed_pieces)}
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={if Enum.empty?(@game_state.placed_pieces), do: "先放置拼图块后才能重置", else: "清空所有已放置的拼图块"}
             >
               <.icon name="hero-arrow-path" class="w-5 h-5 inline mr-1" />
-              重置
+              重新开始
             </button>
           </div>
 
@@ -470,7 +471,8 @@ defmodule PentoWeb.GameLive do
     |> assign(:ghost_position, nil)
     |> assign(:valid_positions, [])
     |> assign(:game_won, false)
-    |> put_flash(:info, "游戏已重置")
+    |> put_flash(:info, "游戏已重新开始")
+    |> schedule_save()
     
     {:noreply, socket}
   end
