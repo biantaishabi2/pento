@@ -10,7 +10,7 @@ Pento is a classic pentomino puzzle game where players must fit 12 unique pieces
 
 The challenge lies in finding the right combination of piece placements, rotations, and flips to completely fill the board without any gaps or overlaps.
 
-![Game Screenshot](screenshots/game-main.png)
+![Game Screenshot](screenshots/Screenshot_20250618_233550.jpg)
 
 ## Features
 
@@ -78,7 +78,7 @@ Fill the entire board with all 12 pentomino pieces. The game is won when 100% of
 3. **Place the Piece**: Click on a valid position (highlighted in green) to place the piece
 4. **Adjust as Needed**: Remove pieces by clicking on them, or use undo to revert moves
 
-![Gameplay Example](screenshots/gameplay.png)
+![Gameplay Example](screenshots/IMG_20250618_233210.jpg)
 
 ### Controls
 | Action | Mouse | Keyboard |
@@ -107,7 +107,6 @@ Fill the entire board with all 12 pentomino pieces. The game is won when 100% of
 4. Pay attention to gaps that match specific piece shapes
 5. The game automatically saves your progress, so you can take breaks
 
-![Completed Puzzle](screenshots/completed.png)
 
 ## Development
 
