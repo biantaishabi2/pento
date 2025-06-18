@@ -2,7 +2,7 @@
 
 一款基于 Phoenix LiveView 构建的单人五格拼图游戏，具有智能放置算法和游戏状态持久化功能。
 
-[English Version](README.md)
+🎮 **[在线试玩](https://pento.biantaishabi.org/)** | [English Version](README.md)
 
 ## 游戏介绍
 

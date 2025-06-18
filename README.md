@@ -2,7 +2,7 @@
 
 A single-player pentomino puzzle game built with Phoenix LiveView, featuring smart placement algorithms and game state persistence.
 
-[中文版本](README_zh.md)
+🎮 **[Play Online](https://pento.biantaishabi.org/)** | [中文版本](README_zh.md)
 
 ## About the Game
 
